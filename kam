@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+import itertools
+import os
+import hashlib
+import sys
+
+# Terminal Renkleri
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+BLUE = '\033[94m'
+CYAN = '\033[96m'
+RESET = '\033[0m'
+BOLD = '\033[1m'
+
+def normalize_turkish(text):
+    mapping = {'ç':'c','Ç':'C','ğ':'g','Ğ':'G','ı':'i','I':'I','İ':'i','ö':'o','Ö':'O','ş':'s','Ş':'S','ü':'u','Ü':'U'}
+    for tr, en in mapping.items():
+        text = text.replace(tr, en)
+    return text
+
+def leet_engine(text):
+    rep = {'a':'4','e':'3','i':'1','o':'0','s':'5','t':'7','b':'8','g':'9'}
+    return "".join(rep.get(c.lower(), c) for c in text)
+
+def generate_hash(text, mode):
+    if mode == "1": return hashlib.md5(text.encode()).hexdigest()
+    if mode == "2": return hashlib.sha1(text.encode()).hexdigest()
+    if mode == "3": return hashlib.sha256(text.encode()).hexdigest()
+    return text
+
+def apply_smart_filters(wordlist, lang):
+    print(f"\n{YELLOW}--- {'Filtreleme Seçenekleri' if lang=='TR' else 'Filtering Options'} ---{RESET}")
+    min_l = int(input("Minimum karakter uzunluğu (Atlamak için 0): " if lang=="TR" else "Min length (0 to skip): ") or 0)
+    must_num = input("Sadece içinde rakam olanları tut? (e/h): " if lang=="TR" else "Keep only with numbers? (y/n): ").lower() in ['e','y']
+    
+    filtered = set()
+    for w in wordlist:
+        if len(w) >= min_l:
+            if must_num:
+                if any(char.isdigit() for char in w):
+                    filtered.add(w)
+            else:
+                filtered.add(w)
+    return filtered
+
+def print_banner():
+    banner = f"""{CYAN}{BOLD}
+    ██╗  ██╗ █████╗ ███╗   ███╗
+    ██║ ██╔╝██╔══██╗████╗ ████║
+    █████╔╝ ███████║██╔████╔██║
+    ██╔═██╗ ██╔══██║██║╚██╔╝██║
+    ██║  ██╗██║  ██║██║ ╚═╝ ██║
+    ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝
+    {YELLOW}>> Created by: Çağrı Ceyhan <<
+    {BLUE}>> https://cagriceyhan.com.tr <<{RESET}
+    """
+    print(banner)
+
+def generate_kam():
+    print_banner()
+    lang = input(f"{BOLD}Dil / Language (TR/EN): {RESET}").strip().upper()
+    
+    t = {
+        "warn": f"\n{RED}[!] ÖNEMLİ: Boşluk kullanmayın. {RESET}" if lang=="TR" else f"\n{RED}[!] IMPORTANT: No spaces. {RESET}",
+        "date_head": f"\n{YELLOW}--- Tarih Verileri ---{RESET}" if lang=="TR" else f"\n{YELLOW}--- Date Data ---{RESET}",
+        "day": "Doğum Günü (GG): " if lang=="TR" else "Birth Day (DD): ",
+        "month": "Doğum Ayı (AA): " if lang=="TR" else "Birth Month (MM): ",
+        "year": "Doğum Yılı (YYYY): " if lang=="TR" else "Birth Year (YYYY): ",
+        "q_num": "Rakamlar eklensin mi? (e/h): " if lang=="TR" else "Add numbers? (y/n): ",
+        "q_spec": "Özel karakterler eklensin mi? (e/h): " if lang=="TR" else "Add special chars? (y/n): ",
+        "q_leet": "LeetSpeak (4ndr0id vb.) olsun mu? (e/h): " if lang=="TR" else "LeetSpeak? (y/n): ",
+        "q_temp": "Yaygın şifre kalıpları eklensin mi? (e/h): " if lang=="TR" else "Use common templates? (y/n): ",
+        
+        "q_hash": f"\n{CYAN}--- Çıktı Formatı ---\n0: Düz Metin | 1: MD5 | 2: SHA1 | 3: SHA256\nSeçiminiz: {RESET}" if lang=="TR" else f"\n{CYAN}--- Output Format ---\n0: Plain Text | 1: MD5 | 2: SHA1 | 3: SHA256\nChoice: {RESET}",
+        "q_depth": f"\n{YELLOW}Derinlik (0-10) [8-10 Çok Yoğun!]: {RESET}" if lang=="TR" else f"\n{YELLOW}Intensity (0-10) [8-10 Very Heavy!]: {RESET}",
+        "q_file": "Dosya adı: " if lang=="TR" else "Filename: ",
+        "working": f"\n{GREEN}[*] Motor çalışıyor, lütfen bekleyin...{RESET}" if lang=="TR" else f"\n{GREEN}[*] Engine running, please wait...{RESET}",
+        "success": f"\n{GREEN}{BOLD}[+] İşlem Başarılı!{RESET}" if lang=="TR" else f"\n{GREEN}{BOLD}[+] Success!{RESET}",
+        "count": "Toplam Kelime: " if lang=="TR" else "Total Words: ",
+        "path": "Kayıt Yolu: " if lang=="TR" else "Path: "
+    }
+
+    print(t["warn"])
+
+    fields = ["Ad", "Soyad", "Eşinin Adı", "Evcil Hayvanı", "Çocuğunun Adı", "Kullanıcı Adı", "Ülke", "Şehir", "Plaka", "Takım", "Uğurlu Rakam"] if lang == "TR" else ["First Name", "Last Name", "Spouse Name", "Pet Name", "Child Name", "Username", "Country", "City", "Plate Code", "Team", "Lucky Number"]
+
+    raw_data = []
+    for f in fields:
+        val = input(f"{BLUE}{f}: {RESET}").strip().replace(" ", "")
+        if val:
+            raw_data.append(val)
+            norm = normalize_turkish(val)
+            if norm != val: raw_data.append(norm)
+
+    print(t["date_head"])
+    d, m, y = input(t["day"]), input(t["month"]), input(t["year"])
+    if d and m and y:
+        raw_data.extend([d+m+y, y, y[-2:], d+m, m+d, d+"."+m+"."+y])
+
+    use_num = input(f"{BOLD}{t['q_num']}{RESET}").lower() in ['e','y']
+    use_spec = input(f"{BOLD}{t['q_spec']}{RESET}").lower() in ['e','y']
+    use_leet = input(f"{BOLD}{t['q_leet']}{RESET}").lower() in ['e','y']
+    use_templates = input(f"{BOLD}{t['q_temp']}{RESET}").lower() in ['e','y']
+    
+    hash_mode = input(t["q_hash"])
+    try:
+        depth_input = input(t["q_depth"]).strip()
+        depth = int(depth_input) if depth_input else 5
+    except ValueError:
+        depth = 5
+    out_name = input(f"{BOLD}{t['q_file']}{RESET}").strip() or "kam_wordlist.txt"
+
+    nums = ['123', '1903', '1905', '1907', '2026', '0', '1'] if use_num else ['']
+    specs = ['!', '@', '#', '*', '?', '.', '_', '<', '>', '+', '^', '%','&','/','(', ')','='] if use_spec else ['']
+    templates = ['Sifre', 'Password', 'Admin', 'Login', 'root', 'toor', 'abc', 'asd', 'asdf','qwe', 'zxc','qwer'] if use_templates else []
+    
+    all_seeds = set(raw_data)
+    if use_leet: all_seeds.update([leet_engine(x) for x in raw_data])
+    if use_templates: all_seeds.update(templates)
+
+    seeds = list(all_seeds)
+    max_comb = 1 if depth < 5 else 2 if depth < 9 else 3
+    final_list = set()
+
+    print(t["working"])
+    for r in range(1, max_comb + 1):
+        for combo in itertools.permutations(seeds, r):
+            base = "".join(combo)
+            final_list.update([base, base.lower(), base.upper(), base.capitalize()])
+            if depth > 2:
+                for n in nums: final_list.add(f"{base}{n}")
+                for s in specs: final_list.add(f"{base}{s}")
+                if depth > 6:
+                    for n, s in itertools.product(nums, specs):
+                        final_list.add(f"{base}{n}{s}")
+
+    with open(out_name, "w", encoding="utf-8") as f:
+        for word in sorted(final_list):
+            if len(word) >= 4:
+                f.write(generate_hash(word, hash_mode) + "\n")
+
+    print(t["success"])
+    print(f"{CYAN}{t['count']}{len(final_list)}")
+    print(f"{t['path']}{os.path.abspath(out_name)}{RESET}")
+
+if __name__ == "__main__":
+    try:
+        generate_kam()
+    except KeyboardInterrupt:
+        
+        print(f"\n\n{RED}[!] Process cancelled...{RESET}")
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
