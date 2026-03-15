@@ -9,7 +9,7 @@
 
 # Installation
 ```bash
-git clone [https://github.com/cagriceyhan/kam.git](https://github.com/cagriceyhan/kam.git)
+git clone https://github.com/cagriceyhan/kam.git
 cd kam
 chmod +x setup.sh
 ./setup.sh
